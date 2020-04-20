@@ -29,19 +29,33 @@ func zeroOutMatrix(input [][]float64) [][]float64 {
 }
 
 // Solve receives an MxN matrix and returns a with the chosen row for each column.
+// as per https://www.youtube.com/watch?v=rrfFTdO2Z7I
 func Solve(input [][]float64) (float64, []int) {
 
 	var total float64
 	local := arrayCopy(input)
-	result := make([]int, len(input))
-	local = zeroRows(local)
-	local = zeroColumns(local)
+	if len(input) != len(input[0]) {
+		local = normalizeMatrix(local)
+	}
+
+	result := make([]int, len(input[0]))
+	if len(input) > len(input[0]) {
+		//missing colunms
+		local = zeroRows(local)
+		local = zeroColumns(local)
+	} else {
+		// equals or missing rows
+		local = zeroRows(local)
+		local = zeroColumns(local)
+	}
+
 	marked := makeArray(len(input))
 	var markedColumns map[int]bool
 	var markedRows map[int]bool
 	marked, markedColumns = rowScanning(local, marked)
 	marked, markedRows = colScanning(local, marked)
 	for checkLines(marked) != len(input) {
+
 		local = step4(local, markedRows, markedColumns)
 		marked = zeroOutMatrix(marked)
 		marked, markedColumns = rowScanning(local, marked)
@@ -49,7 +63,7 @@ func Solve(input [][]float64) (float64, []int) {
 	}
 
 	for row := range input {
-		for col := range input {
+		for col := range input[0] {
 			if marked[row][col] == 1 {
 
 				total += input[row][col]
@@ -236,52 +250,33 @@ func zeroColumns(input [][]float64) [][]float64 {
 
 //normalize receives and MxN matrix and makes it max(m,n) matrix
 func normalizeMatrix(originalMatrix [][]float64) [][]float64 {
-	localMatrix := originalMatrix
+
 	// assuming there are missing columns
 	maxDimension := len(originalMatrix) //total rows
-
 	if maxDimension < len(originalMatrix[0]) {
 		//there are missing rows
 		maxDimension = len(originalMatrix[0]) // total columns
-		maxValues := make([]float64, maxDimension)
-
-		// find maxValue per column
-		for row := range originalMatrix { // go through rows
-			for col := range originalMatrix[row] { // go through columns
-				if row == 0 { // first line
-					maxValues[col] = originalMatrix[0][col]
-				}
-				if maxValues[col] < originalMatrix[row][col] {
-					maxValues[col] = originalMatrix[row][col]
-				}
-			}
-		}
-		// fill as many as the missing rows with columns max values
-		for i := len(originalMatrix); i < maxDimension; i++ {
-			localMatrix = append(localMatrix, maxValues)
-		}
-		return localMatrix
 	}
-	maxValues := make([]float64, maxDimension)
-	// there are missing columns
-
-	for col := range originalMatrix[0] { // go through columns
-		for row := range originalMatrix { // for each row
-			if col == 0 { // first column
-				maxValues[row] = originalMatrix[row][0]
-			}
-			if maxValues[row] < originalMatrix[row][col] {
-				maxValues[row] = originalMatrix[row][col]
+	localMatrix := makeArray(maxDimension)
+	var maxValue float64 = 0
+	for row := range originalMatrix { // go through rows
+		for col := range originalMatrix[row] { // go through columns
+			if maxValue < originalMatrix[row][col] {
+				maxValue = originalMatrix[row][col]
 			}
 		}
-
 	}
+
 	// fill as many as the missing columns with rows max values
-	for i := len(originalMatrix[0]); i < maxDimension; i++ {
-		for row := range localMatrix {
-			localMatrix[row] = append(localMatrix[row], maxValues[row])
-		}
+	for i := 0; i < maxDimension; i++ {
+		for j := 0; j < maxDimension; j++ {
+			if i >= len(originalMatrix) || j >= len(originalMatrix[0]) {
+				localMatrix[i][j] = maxValue
+			} else {
+				localMatrix[i][j] = originalMatrix[i][j]
+			}
 
+		}
 	}
 	return localMatrix
 
