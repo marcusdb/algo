@@ -52,30 +52,41 @@ var testSolve = []struct {
 		result: []int{1, 2, 0},
 		total:  20,
 	},
-	{
-		name: "test 5",
-		data: [][]float64{
-			{13, 13, 19, 50, 33, 38},
-			{73, 33, 71, 77, 97, 95},
-			{20, 8, 56, 55, 64, 35},
-			{26, 25, 72, 32, 55, 77},
-			{83, 40, 69, 3, 53, 49},
-			{67, 20, 44, 29, 86, 61},
-		},
-		result: []int{4, 1, 5, 0, 3, 2},
-		total:  174,
-	},
-	{
-		name: "test 6 with missing column",
-		data: [][]float64{
-			{11, 6, 12},
-			{12, 4, 6},
-			{8, 12, 11},
-			{14, 16, 15},
-		},
-		result: []int{1, 2, 0},
-		total:  20,
-	},
+	// {
+	// 	name: "test 5",
+	// 	data: [][]float64{
+	// 		{13, 13, 19, 50, 33, 38},
+	// 		{73, 33, 71, 77, 97, 95},
+	// 		{20, 8, 56, 55, 64, 35},
+	// 		{26, 25, 72, 32, 55, 77},
+	// 		{83, 40, 69, 3, 53, 49},
+	// 		{67, 20, 44, 29, 86, 61},
+	// 	},
+	// 	result: []int{4, 1, 5, 0, 3, 2},
+	// 	total:  174,
+	// },
+	// {
+	// 	name: "test 6 with missing column",
+	// 	data: [][]float64{
+	// 		{11, 6, 12},
+	// 		{12, 4, 6},
+	// 		{8, 12, 11},
+	// 		{14, 16, 15},
+	// 	},
+	// 	result: []int{1, 2, 0},
+	// 	total:  20,
+	// },
+	// {
+	// 	name: "test 7",
+	// 	data: [][]float64{
+	// 		{100, 201, 302},
+	// 		{99, 200, 301},
+	// 		{98, 199, 300},
+	// 	},
+	// 	result: []int{1, 2, 0},
+	// 	total:  20,
+	// },
+
 	// {
 	// 	name: "test 7 with missing row",
 	// 	data: [][]float64{
@@ -104,47 +115,16 @@ var testStep4 = []struct {
 			{2, 0, 1, 1, 0},
 			{0, 5, 7, 1, 7},
 		},
-		rows:    map[int]bool{2: true},
-		columns: map[int]bool{0: true, 1: true, 4: true},
+		rows:    map[int]bool{0: true, 2: true, 3: true},
+		columns: map[int]bool{0: true},
 		result: [][]float64{
-			{2, 4, 6, 1, 0},
-			{0, 9, 6, 4, 4},
-			{7, 8, 0, 0, 3},
-			{2, 0, 0, 0, 0},
-			{0, 5, 6, 0, 7},
+			{3, 4, 7, 2, 0},
+			{0, 8, 6, 4, 3},
+			{7, 7, 0, 0, 2},
+			{3, 0, 1, 1, 0},
+			{0, 4, 6, 0, 6},
 		},
 	},
-}
-
-var testColScanning = []struct {
-	name   string
-	data   [][]float64
-	marked [][]float64
-	result [][]float64
-}{
-	{
-		name: "test 1",
-		data: [][]float64{
-			{2, 4, 7, 2, 0},
-			{0, 9, 7, 5, 4},
-			{6, 7, 0, 0, 2},
-			{2, 0, 1, 1, 0},
-			{0, 5, 7, 1, 7},
-		},
-		marked: [][]float64{
-			{0, 0, 0, 0, 1},
-			{1, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0},
-			{0, 1, 0, 0, -1},
-			{-1, 0, 0, 0, 0},
-		},
-		result: [][]float64{
-			{0, 0, 0, 0, 1},
-			{1, 0, 0, 0, 0},
-			{0, 0, 1, -1, 0},
-			{0, 1, 0, 0, -1},
-			{-1, 0, 0, 0, 0},
-		}},
 }
 
 var testRowScanning = []struct {
@@ -172,7 +152,7 @@ var testRowScanning = []struct {
 		result: [][]float64{
 			{0, 0, 0, 0, 1},
 			{1, 0, 0, 0, 0},
-			{0, 0, 0, 0, 0},
+			{0, 0, 1, -1, 0},
 			{0, 1, 0, 0, -1},
 			{-1, 0, 0, 0, 0},
 		}},
@@ -278,18 +258,49 @@ var testsZeroCols = []struct {
 	},
 }
 
-func TestCheckLines(t *testing.T) {
-	data := [][]float64{
-		{0, 0, 0, 0, 1},
-		{1, 0, 0, 0, 0},
-		{0, 0, 1, -1, 0},
-		{0, 1, 0, 0, -1},
-		{-1, 0, 0, 0, 0},
-	}
+var testsCheckLines = []struct {
+	name   string
+	data   [][]float64
+	result int
+}{
+	{
+		name: "test 1",
+		data: [][]float64{
+			{1, 0, 0, 0},
+			{0, 0, 0, 1},
+			{-1, 0, 0, 0},
+			{0, 1, -1, 0},
+		},
+		result: 3,
+	},
+	{
+		name: "test 2",
+		data: [][]float64{
+			{0, 0, 0, 0, 1},
+			{1, 0, 0, 0, 0},
+			{0, 0, 1, -1, 0},
+			{0, 1, 0, 0, -1},
+			{-1, 0, 0, 0, 0},
+		},
+		result: 4,
+	},
+}
 
-	result := checkLines(data)
-	if result != 4 {
-		t.Errorf("TestCheckLines want %v got %v", 4, result)
+func TestCheckLines(t *testing.T) {
+	// data := [][]float64{
+	// 	{0, 0, 0, 0, 1},
+	// 	{1, 0, 0, 0, 0},
+	// 	{0, 0, 1, -1, 0},
+	// 	{0, 1, 0, 0, -1},
+	// 	{-1, 0, 0, 0, 0},
+	// }
+
+	for _, testToBeDone := range testsCheckLines {
+		rows, cols := checkLines(testToBeDone.data)
+		result := len(rows) + len(cols)
+		if result != testToBeDone.result {
+			t.Errorf("TestCheckLines want %v got %v", testToBeDone.result, result)
+		}
 	}
 
 }
@@ -314,7 +325,7 @@ func TestNormalizeMatrix(t *testing.T) {
 
 func TestRowScanning(t *testing.T) {
 	for _, testToBeDone := range testRowScanning {
-		result, _ := rowScanning(testToBeDone.data, testToBeDone.marked)
+		result := rowScanning(testToBeDone.data, testToBeDone.marked)
 		if !compareMulti(result, testToBeDone.result) {
 			t.Errorf("%s want %v got %v", testToBeDone.name, testToBeDone.result, result)
 		}
@@ -329,15 +340,6 @@ func TestSolve(t *testing.T) {
 		}
 		if total != testToBeDone.total {
 			t.Errorf("%s want %v got %v", testToBeDone.name, testToBeDone.total, total)
-		}
-	}
-}
-
-func TestColScanning(t *testing.T) {
-	for _, testToBeDone := range testColScanning {
-		result, _ := colScanning(testToBeDone.data, testToBeDone.marked)
-		if !compareMulti(result, testToBeDone.result) {
-			t.Errorf("%s want %v got %v", testToBeDone.name, testToBeDone.result, result)
 		}
 	}
 }

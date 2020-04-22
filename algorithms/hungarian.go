@@ -50,29 +50,87 @@ func Solve(input [][]float64) (float64, []int) {
 	}
 
 	marked := makeArray(len(input))
-	var markedColumns map[int]bool
-	var markedRows map[int]bool
-	marked, markedColumns = rowScanning(local, marked)
-	marked, markedRows = colScanning(local, marked)
-	for checkLines(marked) != len(input) {
 
-		local = step4(local, markedRows, markedColumns)
+	marked = rowScanning(local, marked)
+
+	lineRows, lineCols := checkLines(marked)
+
+	for len(lineRows)+len(lineCols) != len(input) {
+		local = step4(local, lineRows, lineCols)
 		marked = zeroOutMatrix(marked)
-		marked, markedColumns = rowScanning(local, marked)
-		marked, markedRows = colScanning(local, marked)
+		marked = rowScanning(local, marked)
+		lineRows, lineCols = checkLines(marked)
+		break
 	}
+	//fmt.Printf("local:%v\nr:%v\nc:%v\nmarked:%v\n", local, lineRows, lineCols, marked)
+
+	result = resultDecider(marked)[:len(input[0])]
 
 	for row := range input {
-		for col := range input[0] {
-			if marked[row][col] == 1 {
-
-				total += input[row][col]
-				result[row] = col
-			}
-
-		}
+		total += input[row][result[row]]
 	}
 	return total, result
+}
+
+func resultDecider(input [][]float64) []int {
+	resultPerRow := make(map[int]int)
+	// check if there is only 1 possible per row and marked
+	for row := range input {
+		chosenCol := -1
+		total := 0
+		for col := range input {
+			if input[row][col] != 0 {
+				total++
+				chosenCol = col
+			}
+		}
+		if total == 1 {
+			resultPerRow[row] = chosenCol
+		}
+	}
+	//fmt.Printf("row alone %v\n", resultPerRow)
+	if len(resultPerRow) < len(input) {
+		// check if there is only 1 possible per col
+		for col := range input {
+			chosenRow := -1
+			total := 0
+			for row := range input {
+				if input[row][col] != 0 {
+					total++
+					chosenRow = row
+				}
+			}
+			if total == 1 {
+				resultPerRow[chosenRow] = col
+			}
+		}
+		//fmt.Printf("col alone %v\n", resultPerRow)
+		if len(resultPerRow) < len(input) {
+			for row := range input {
+				for col := range input {
+					if _, ok := resultPerRow[row]; !ok {
+						if input[row][col] != 0 {
+							// check for no use of this column
+							notUsed := true
+							for key := range resultPerRow {
+								if resultPerRow[key] == col {
+									notUsed = false
+								}
+							}
+							if notUsed {
+								resultPerRow[row] = col
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	result := make([]int, len(input))
+	for key := range resultPerRow {
+		result[key] = resultPerRow[key]
+	}
+	return result
 }
 
 func makeArray(dimension int) [][]float64 {
@@ -84,20 +142,62 @@ func makeArray(dimension int) [][]float64 {
 }
 
 // checkLines check how many lines are covered
-func checkLines(marked [][]float64) int {
-	total := 0
+func checkLines(marked [][]float64) (map[int]bool, map[int]bool) {
+	markedRows := make(map[int]bool)
+	markedCols := make(map[int]bool)
+
+	//Mark all rows having no assignments
 	for row := range marked {
+		markedRows[row] = true
 		for col := range marked {
 			if marked[row][col] == 1 {
-				total++
+				delete(markedRows, row)
 			}
 		}
 	}
-	return total
+
+	var numMarkedRows int
+	var numMarkedCols int
+	newlyMarkedRows := markedRows
+	newlyMarkedCols := make(map[int]bool)
+	for numMarkedRows != len(markedRows) || numMarkedCols != len(markedCols) {
+		numMarkedRows = len(markedRows)
+		numMarkedCols = len(markedCols)
+		//Mark all columns having zeros in newly marked row(s)
+		for markedRow := range newlyMarkedRows {
+			for col := range marked {
+				if marked[markedRow][col] != 0 {
+					newlyMarkedCols[col] = true
+					markedCols[col] = true
+				}
+			}
+		}
+		newlyMarkedRows = make(map[int]bool) // reset newly
+		//Mark all rows having assignments in newly marked columns
+		for markedCol := range newlyMarkedCols {
+			for row := range marked {
+				if marked[row][markedCol] == 1 {
+					newlyMarkedRows[row] = true
+					markedRows[row] = true
+				}
+			}
+		}
+		newlyMarkedCols = make(map[int]bool) // reset newly
+
+	}
+	// return lines for the markedCols and for the UNmarkedRows
+	rowLines := make(map[int]bool)
+	for i := range marked {
+		if !markedRows[i] {
+			rowLines[i] = true
+		}
+	}
+	colLines := markedCols
+	return rowLines, colLines
 }
 
 func step4(input [][]float64, rows map[int]bool, columns map[int]bool) [][]float64 {
-	local := input
+	local := arrayCopy(input)
 	// calculate min of the not cover by lines
 	min := math.MaxFloat64
 	for row := range input {
@@ -123,64 +223,33 @@ func step4(input [][]float64, rows map[int]bool, columns map[int]bool) [][]float
 	return local
 }
 
-//colScanning return the marked array (1 assigned -1 cross out) and the crossed out rows
-//col scan mark the col with one zeros and cross out its rows
-func colScanning(input [][]float64, marked [][]float64) ([][]float64, map[int]bool) {
-	markedRow := make(map[int]bool)
-	for col := range input {
-		chosenRow := -1
-		for row := range input {
-			if input[row][col] == 0 && marked[row][col] == 0 {
-				if chosenRow >= 0 { // already had another zero
-					chosenRow = -1
-					break
-				}
-				chosenRow = row
-			}
-		}
-		if chosenRow >= 0 {
-			marked[chosenRow][col] = 1
-			markedRow[chosenRow] = true
-			for col2 := range input {
-
-				if input[chosenRow][col2] == 0 && col != col2 {
-					marked[chosenRow][col2] = -1
-				}
-
-			}
-		}
-	}
-	return marked, markedRow
-}
-
 //rowScanning return the marked array (1 assigned -1 cross out) and the crossed out columns
 //row scan mark the row with one zeros and cross out its colums
-func rowScanning(input [][]float64, marked [][]float64) ([][]float64, map[int]bool) {
-	markedCol := make(map[int]bool)
+func rowScanning(input [][]float64, marked [][]float64) [][]float64 {
 	for row := range input {
-		chosenCol := -1
+
 		for col := range input {
 			if input[row][col] == 0 && marked[row][col] == 0 {
-				if chosenCol >= 0 { // already had another zero
-					chosenCol = -1
-					break
-				}
-				chosenCol = col
-			}
-		}
-		if chosenCol >= 0 {
-			marked[row][chosenCol] = 1
-			markedCol[chosenCol] = true
-			for row2 := range input {
 
-				if input[row2][chosenCol] == 0 && row != row2 {
-					marked[row2][chosenCol] = -1
+				marked[row][col] = 1
+				for i := col; i < len(input); i++ {
+					if input[row][i] == 0 && marked[row][i] == 0 {
+						// cross out all left in the row
+						marked[row][i] = -1
+					}
 				}
+				for row2 := range input {
+					// cross all in the same column
+					if input[row2][col] == 0 && row != row2 {
+						marked[row2][col] = -1
+					}
 
+				}
+				break
 			}
 		}
 	}
-	return marked, markedCol
+	return marked
 }
 
 // cover all the zeros with the minimum possible number of lines
